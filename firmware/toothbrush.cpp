@@ -13,6 +13,7 @@
 #define set_output(portdir,pin) portdir |= (1<<pin)
 
 #define LED_PIN 3
+#define MOTOR_PIN 1
 
 void set_color(uint8_t red, uint8_t green, uint8_t blue) 
 {
@@ -40,11 +41,18 @@ void startup_animation(void)
 
 int main(void)
 { 
+    set_output(DDRB, MOTOR_PIN);
     set_output(DDRD, LED_PIN);
+    output_low(DDRB, MOTOR_PIN);
     startup_animation();
 
     for(;;)
-        ;
+    {
+        output_high(DDRB, MOTOR_PIN);
+        _delay_ms(2000);
+        output_low(DDRB, MOTOR_PIN);
+        _delay_ms(2000);
+    }
 
     return 0;
 }
