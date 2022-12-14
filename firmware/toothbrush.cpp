@@ -48,10 +48,19 @@ int main(void)
 
     for(;;)
     {
+        set_color(32, 0, 0);
         output_high(DDRB, MOTOR_PIN);
-        _delay_ms(2000);
+        _delay_ms(250);
+        _delay_ms(250);
+        _delay_ms(250);
+        _delay_ms(250);
+
+        set_color(0, 0, 0);
         output_low(DDRB, MOTOR_PIN);
-        _delay_ms(2000);
+        _delay_ms(250);
+        _delay_ms(250);
+        _delay_ms(250);
+        _delay_ms(250);
     }
 
     return 0;
