@@ -34,7 +34,7 @@
 
 
 #define ws2812_port D     // Data port 
-#define ws2812_pin  2     // Data out pin
+#define ws2812_pin  3     // Data out pin
 
 /*
  *  Structure of the LED array

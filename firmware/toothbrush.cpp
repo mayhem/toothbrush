@@ -14,13 +14,13 @@
 
 #define LED_PIN 3
 
-void set_color(uint8_t red, uint8_t blue, uint8_t green) 
+void set_color(uint8_t red, uint8_t green, uint8_t blue) 
 {
     uint8_t buffer[3];
 
-    buffer[0] = red;
-    buffer[1] = blue;
-    buffer[2] = green;
+    buffer[0] = green;
+    buffer[1] = red;
+    buffer[2] = blue;
     ws2812_sendarray((uint8_t *)buffer, 3);
 }
 
@@ -30,12 +30,12 @@ void startup_animation(void)
 
     for(i = 0; i < 5; i++)
     {
-        set_color(255, 150, 0);
-        _delay_ms(50);
-        set_color(255, 0, 255);
-        _delay_ms(50);
+        set_color(64, 26, 0);
+        _delay_ms(100);
+        set_color(64, 0, 64);
+        _delay_ms(100);
     }
-    set_color(0, 0, 32);
+    set_color(0, 32, 0);
 }
 
 int main(void)
