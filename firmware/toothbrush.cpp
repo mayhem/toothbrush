@@ -7,54 +7,42 @@
 #include <string.h>
 #include "ws2812.h"
 
-void update_leds(void)
+#define output_low(port,pin) port &= ~(1<<pin)
+#define output_high(port,pin) port |= (1<<pin)
+#define set_input(portdir,pin) portdir &= ~(1<<pin)
+#define set_output(portdir,pin) portdir |= (1<<pin)
+
+#define LED_PIN 3
+
+void set_color(uint8_t red, uint8_t blue, uint8_t green) 
 {
-    ws2812_sendarray((uint8_t *)g_led_buffer, 3 * NUM_LEDS);
+    uint8_t buffer[3];
+
+    buffer[0] = red;
+    buffer[1] = blue;
+    buffer[2] = green;
+    ws2812_sendarray((uint8_t *)buffer, 3);
 }
 
-void clear_led(uint8_t index)
+void startup_animation(void)
 {
-    g_color_buffer[index].r = 0;
-    g_color_buffer[index].g = 0;
-    g_color_buffer[index].b = 0;
-    g_led_buffer[index].r = 0;
-    g_led_buffer[index].g = 0;
-    g_led_buffer[index].b = 0;
-}
+    uint8_t i;
 
-void get_led(uint8_t index, color_t *col)
-{
-    if (index >= NUM_LEDS)
-        return;
-
-    col->r = (uint8_t)(g_color_buffer[index].r >> COLOR_SHIFT);
-    col->g = (uint8_t)(g_color_buffer[index].g >> COLOR_SHIFT);
-    col->b = (uint8_t)(g_color_buffer[index].b >> COLOR_SHIFT);
-}
-
-void set_led(uint8_t index, color_t *col)
-{
-    g_color_buffer[index].r = col->r << COLOR_SHIFT;
-    g_color_buffer[index].g = col->g << COLOR_SHIFT;
-    g_color_buffer[index].b = col->b << COLOR_SHIFT;
-
-    g_led_buffer[index].r = ((g_color_buffer[index].r * g_brightness / 100) >> COLOR_SHIFT) & 0xFF;
-    g_led_buffer[index].g = ((g_color_buffer[index].g * g_brightness / 100) >> COLOR_SHIFT) & 0xFF;
-    g_led_buffer[index].b = ((g_color_buffer[index].b * g_brightness / 100) >> COLOR_SHIFT) & 0xFF;
-}
-
-void set_led_rgb(uint8_t index, uint8_t r, uint8_t g, uint8_t b)
-{
-    color_t temp;
-
-    temp.r = r;
-    temp.g = g;
-    temp.b = b;
-    set_led(index, &temp);
+    for(i = 0; i < 5; i++)
+    {
+        set_color(255, 150, 0);
+        _delay_ms(50);
+        set_color(255, 0, 255);
+        _delay_ms(50);
+    }
+    set_color(0, 0, 32);
 }
 
 int main(void)
 { 
+    set_output(DDRD, LED_PIN);
+    startup_animation();
+
     for(;;)
         ;
 
