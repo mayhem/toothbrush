@@ -75,6 +75,8 @@ void enable_motor(uint8_t state)
 
 int main(void)
 { 
+    static uint32_t last_button_down_time = 0;
+
     // Set outputs
     sbi(DDRD, PD3);
     sbi(DDRB, PB1);
@@ -107,6 +109,9 @@ int main(void)
 
         if (button_time != 0)
         {
+            if (last_button_down_time != 0 && button_time - last_button_down_time < BOUNCE_TIME)
+                return;
+
             if (state == 0)
             {
                 state = 1;
@@ -116,6 +121,7 @@ int main(void)
             {
                 state = 0;
                 set_color(0,0,0);
+                last_button_down_time = 0;
             }
             cli();
             button_down_time = 0;
