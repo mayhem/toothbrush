@@ -13,8 +13,9 @@
 #define cbi(a, b) ((a) &= ~(1 << (b)))    //clears bit B in variable A
 #define tbi(a, b) ((a) ^= 1 << (b))       //toggles bit B in variable A
 
-#define TIMER1_INIT      0xFFEF
+#define TIMER1_INIT      0xFFF8
 #define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
+#define BOUNCE_TIME 250
 
 volatile uint32_t button_down_time = 0;
 volatile uint32_t g_time = 0;
@@ -79,6 +80,7 @@ int main(void)
 
     // Set outputs
     sbi(DDRD, PD3);
+sbi(DDRC, PC2);
     sbi(DDRB, PB1);
 
     // turn off motor
@@ -101,8 +103,20 @@ int main(void)
     sei();
 
     uint8_t state = 0;
+    uint16_t tick_count = 0;
+    uint32_t last_ticks = 0;
     for(;;)
     {
+        cli();
+        uint32_t ticks = g_time;
+        sei();
+
+        if (ticks != last_ticks)
+            tbi(PORTC, PC2);
+
+        last_ticks = ticks;
+
+#if 0
         cli();
         uint8_t button_time = button_down_time;
         sei();
@@ -110,23 +124,24 @@ int main(void)
         if (button_time != 0)
         {
             if (last_button_down_time != 0 && button_time - last_button_down_time < BOUNCE_TIME)
-                return;
+                continue;
 
             if (state == 0)
             {
                 state = 1;
-                set_color(128,0,0);
+                set_color(32,0,0);
+                last_button_down_time = button_time;
             }
             else
             {
                 state = 0;
                 set_color(0,0,0);
-                last_button_down_time = 0;
             }
             cli();
             button_down_time = 0;
             sei();
         } 
+#endif
     }
 
     return 0;
