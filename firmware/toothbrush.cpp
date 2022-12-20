@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <string.h>
+#include <time.h>
 #include "ws2812.h"
 
 #define output_low(port,pin) port &= ~(1<<pin)
@@ -12,8 +13,28 @@
 #define set_input(portdir,pin) portdir &= ~(1<<pin)
 #define set_output(portdir,pin) portdir |= (1<<pin)
 
-#define LED_PIN 3
-#define MOTOR_PIN 1
+#define TIMER1_INIT      0xFFEF
+#define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
+
+#define LED_PIN          3
+#define MOTOR_PIN        1
+#define BUTTON_PIN       2   // D
+
+volatile uint32_t button_down_time = 0;
+volatile uint32_t g_time = 0;
+
+ISR (TIMER1_OVF_vect)
+{
+    g_time++;
+    TCNT1 = TIMER1_INIT;
+}
+
+ISR(INT0_vect)
+{
+    if (PIND & (1<<PIND2))
+        if (button_down_time == 0)
+            button_down_time = g_time;
+}
 
 void set_color(uint8_t red, uint8_t green, uint8_t blue) 
 {
@@ -47,45 +68,57 @@ void delay(int16_t d)
     }
 }
 
-void pulse_motor(uint8_t duration)
-{
-    output_high(PORTB, MOTOR_PIN);
-    delay(duration);
-    output_low(PORTB, MOTOR_PIN);
-    delay(duration);
-}
-
 void enable_motor(uint8_t state)
 {
-    if (!state)
-    {
+    if (state)
         output_low(PORTB, MOTOR_PIN);
-        return;
-    }
-
-//    pulse_motor(1);
-//    pulse_motor(50);
-//    pulse_motor(100);
-    output_high(PORTB, MOTOR_PIN);
+    else
+        output_high(PORTB, MOTOR_PIN);
 }
 
 
 int main(void)
 { 
+    set_input(DDRD, BUTTON_PIN);
     set_output(DDRB, MOTOR_PIN);
     set_output(DDRD, LED_PIN);
     output_low(PORTB, MOTOR_PIN);
     startup_animation();
 
+    // enable INT0
+    EICRA |= (1 << ISC00);
+    EIMSK |= (1 << INT0);
+
+    // enable timer for clock
+    TCCR1B |= TIMER1_FLAGS;
+    TCNT1 = TIMER1_INIT;
+    TIMSK1 |= (1<<TOIE1);
+
+    sei();
+
+    uint8_t state = 0;
     for(;;)
     {
-        enable_motor(1);
-        set_color(32, 0, 0);
-        delay(2000);
+        cli();
+        uint8_t button_time = button_down_time;
+        sei();
 
-        set_color(0, 0, 0);
-        enable_motor(0);
-        delay(2000);
+        if (button_time != 0)
+        {
+            if (state == 0)
+            {
+                state = 1;
+                set_color(128,0,0);
+            }
+            else
+            {
+                state = 0;
+                set_color(0,0,0);
+            }
+            cli();
+            button_down_time = 0;
+            sei();
+        } 
     }
 
     return 0;
