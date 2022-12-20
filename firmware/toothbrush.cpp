@@ -8,17 +8,13 @@
 #include <time.h>
 #include "ws2812.h"
 
-#define output_low(port,pin) port &= ~(1<<pin)
-#define output_high(port,pin) port |= (1<<pin)
-#define set_input(portdir,pin) portdir &= ~(1<<pin)
-#define set_output(portdir,pin) portdir |= (1<<pin)
+// Bit manipulation macros
+#define sbi(a, b) ((a) |= 1 << (b))       //sets bit B in variable A
+#define cbi(a, b) ((a) &= ~(1 << (b)))    //clears bit B in variable A
+#define tbi(a, b) ((a) ^= 1 << (b))       //toggles bit B in variable A
 
 #define TIMER1_INIT      0xFFEF
 #define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
-
-#define LED_PIN          3
-#define MOTOR_PIN        1
-#define BUTTON_PIN       2   // D
 
 volatile uint32_t button_down_time = 0;
 volatile uint32_t g_time = 0;
@@ -71,20 +67,24 @@ void delay(int16_t d)
 void enable_motor(uint8_t state)
 {
     if (state)
-        output_low(PORTB, MOTOR_PIN);
+        sbi(PORTB, PB1);
     else
-        output_high(PORTB, MOTOR_PIN);
+        cbi(PORTB, PB1);
 }
 
 
 int main(void)
 { 
-    set_input(DDRD, BUTTON_PIN);
+    // Set outputs
+    sbi(DDRD, PD3);
+    sbi(DDRB, PB1);
+
+    // turn off motor
+    cbi(PORTB, PB1);
+
     // Turn on pull up
-    PORTC |= (1<<PD1);
-    set_output(DDRB, MOTOR_PIN);
-    set_output(DDRD, LED_PIN);
-    output_low(PORTB, MOTOR_PIN);
+    sbi(PORTD, PD2);
+
     startup_animation();
 
     // enable INT0
