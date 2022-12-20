@@ -39,28 +39,53 @@ void startup_animation(void)
     set_color(0, 32, 0);
 }
 
+void delay(int16_t d)
+{
+    for(int i = 0; i < d; i++)
+    {
+        _delay_ms(1);
+    }
+}
+
+void pulse_motor(uint8_t duration)
+{
+    output_high(PORTB, MOTOR_PIN);
+    delay(duration);
+    output_low(PORTB, MOTOR_PIN);
+    delay(duration);
+}
+
+void enable_motor(uint8_t state)
+{
+    if (!state)
+    {
+        output_low(PORTB, MOTOR_PIN);
+        return;
+    }
+
+//    pulse_motor(1);
+//    pulse_motor(50);
+//    pulse_motor(100);
+    output_high(PORTB, MOTOR_PIN);
+}
+
+
 int main(void)
 { 
     set_output(DDRB, MOTOR_PIN);
     set_output(DDRD, LED_PIN);
-    output_low(DDRB, MOTOR_PIN);
+    output_low(PORTB, MOTOR_PIN);
     startup_animation();
 
     for(;;)
     {
+        enable_motor(1);
         set_color(32, 0, 0);
-        output_high(DDRB, MOTOR_PIN);
-        _delay_ms(250);
-        _delay_ms(250);
-        _delay_ms(250);
-        _delay_ms(250);
+        delay(2000);
 
         set_color(0, 0, 0);
-        output_low(DDRB, MOTOR_PIN);
-        _delay_ms(250);
-        _delay_ms(250);
-        _delay_ms(250);
-        _delay_ms(250);
+        enable_motor(0);
+        delay(2000);
     }
 
     return 0;
