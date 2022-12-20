@@ -80,6 +80,8 @@ void enable_motor(uint8_t state)
 int main(void)
 { 
     set_input(DDRD, BUTTON_PIN);
+    // Turn on pull up
+    PORTC |= (1<<PD1);
     set_output(DDRB, MOTOR_PIN);
     set_output(DDRD, LED_PIN);
     output_low(PORTB, MOTOR_PIN);
