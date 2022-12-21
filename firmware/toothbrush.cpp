@@ -18,10 +18,18 @@
 #define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
 
 const uint8_t       bounce_time = 50;     // in ms
-const uint32_t      brush_time = 3000; // 120000;  // in ms
-      uint32_t      brush_timeout = 0;
-      uint32_t      brush_timeout_1_off = 0;
-      uint32_t      brush_timeout_1_on = 0;
+const uint32_t      brush_time = 120000;  // in ms
+const uint32_t      cut_out_time = 100;   // in ms
+const uint32_t      reminder_delay = 400; // in ms
+
+uint32_t            brush_timeout = 0;
+uint32_t            brush_timeout_1_off = 0;
+uint32_t            brush_timeout_1_on = 0;
+uint32_t            brush_timeout_2_off = 0;
+uint32_t            brush_timeout_2_on = 0;
+uint32_t            brush_timeout_3_off = 0;
+uint32_t            brush_timeout_3_on = 0;
+
 
 volatile uint32_t   event_time = 0;
 volatile uint8_t    event_state = 0;
@@ -77,7 +85,13 @@ void enable_motor(uint8_t state)
     sei();
     brush_timeout = current_time + brush_time;
     brush_timeout_1_off = brush_timeout;
-    brush_timeout_1_on = brush_timeout + 50;
+    brush_timeout_1_on = brush_timeout_1_off + cut_out_time;
+
+    brush_timeout_2_off = brush_timeout + reminder_delay;
+    brush_timeout_2_on = brush_timeout_2_off + cut_out_time;
+
+    brush_timeout_3_off = brush_timeout + (reminder_delay * 2);
+    brush_timeout_3_on = brush_timeout_3_off + cut_out_time;
 
     if (state)
     {
@@ -164,6 +178,26 @@ int main(void)
         if (brush_timeout_1_on && ev_time >= brush_timeout_1_on)
         {
             brush_timeout_1_on = 0;
+            sbi(PORTB, PB1);
+        }
+        if (brush_timeout_2_off && ev_time >= brush_timeout_2_off)
+        {
+            brush_timeout_2_off = 0;
+            cbi(PORTB, PB1);
+        }
+        if (brush_timeout_2_on && ev_time >= brush_timeout_2_on)
+        {
+            brush_timeout_2_on = 0;
+            sbi(PORTB, PB1);
+        }
+        if (brush_timeout_3_off && ev_time >= brush_timeout_3_off)
+        {
+            brush_timeout_3_off = 0;
+            cbi(PORTB, PB1);
+        }
+        if (brush_timeout_3_on && ev_time >= brush_timeout_3_on)
+        {
+            brush_timeout_3_on = 0;
             sbi(PORTB, PB1);
         }
 
