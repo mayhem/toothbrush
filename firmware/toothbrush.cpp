@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/sleep.h>
 #include <string.h>
 #include <time.h>
 #include "ws2812.h"
@@ -97,11 +98,12 @@ int main(void)
     TCNT1 = TIMER1_INIT;
     TIMSK1 |= (1<<TOIE1);
 
-    sei();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 
     uint8_t pin_state = 0, motor_state = 0;
     uint8_t last_pin_state = PIND & (1<<PIND2) ? 0 : 1;
     uint32_t last_ev_time = 0;
+    uint8_t sleepy_time = 0;
     for(;;)
     {
         pin_state = PIND & (1<<PIND2) ? 0 : 1;
@@ -124,11 +126,23 @@ int main(void)
                 {
                     motor_state = 0;
                     set_color(0,0,0);
+                    sleepy_time = 1;
                 }
             }
             last_ev_time = ev_time;
         } 
         last_pin_state = pin_state;
+    }
+
+    if (sleepy_time)
+    {
+        set_color(0,0,32);
+        sleep_enable();
+        sleep_bod_disable();
+        sei();
+        sleep_cpu();
+        sleep_disable();
+        set_color(32,0,32);
     }
 
     return 0;
