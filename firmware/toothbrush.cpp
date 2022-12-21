@@ -15,9 +15,10 @@
 
 #define TIMER1_INIT      0xFFF8
 #define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
-#define BOUNCE_TIME 250
+#define BOUNCE_TIME 50
 
-volatile uint32_t button_down_time = 0;
+volatile uint32_t event_time = 0;
+volatile uint8_t  event_state = 0;
 volatile uint32_t g_time = 0;
 
 ISR (TIMER1_OVF_vect)
@@ -26,12 +27,11 @@ ISR (TIMER1_OVF_vect)
     TCNT1 = TIMER1_INIT;
 }
 
-ISR(INT0_vect)
-{
-    if (PIND & (1<<PIND2))
-        if (button_down_time == 0)
-            button_down_time = g_time;
-}
+//ISR(INT0_vect)
+//{
+//    event_state = PIND & (1<<PIND2);
+//    event_time = g_time;
+//}
 
 void set_color(uint8_t red, uint8_t green, uint8_t blue) 
 {
@@ -76,11 +76,8 @@ void enable_motor(uint8_t state)
 
 int main(void)
 { 
-    static uint32_t last_button_down_time = 0;
-
     // Set outputs
     sbi(DDRD, PD3);
-sbi(DDRC, PC2);
     sbi(DDRB, PB1);
 
     // turn off motor
@@ -92,8 +89,8 @@ sbi(DDRC, PC2);
     startup_animation();
 
     // enable INT0
-    EICRA |= (1 << ISC00);
-    EIMSK |= (1 << INT0);
+//    EICRA |= (1 << ISC00);
+//    EIMSK |= (1 << INT0);
 
     // enable timer for clock
     TCCR1B |= TIMER1_FLAGS;
@@ -102,46 +99,36 @@ sbi(DDRC, PC2);
 
     sei();
 
-    uint8_t state = 0;
-    uint16_t tick_count = 0;
-    uint32_t last_ticks = 0;
+    uint8_t pin_state = 0, motor_state = 0;
+    uint8_t last_pin_state = PIND & (1<<PIND2) ? 0 : 1;
+    uint32_t last_ev_time = 0;
     for(;;)
     {
-        cli();
-        uint32_t ticks = g_time;
-        sei();
+        pin_state = PIND & (1<<PIND2) ? 0 : 1;
 
-        if (ticks != last_ticks)
-            tbi(PORTC, PC2);
-
-        last_ticks = ticks;
-
-#if 0
-        cli();
-        uint8_t button_time = button_down_time;
-        sei();
-
-        if (button_time != 0)
+        if (pin_state != last_pin_state)
         {
-            if (last_button_down_time != 0 && button_time - last_button_down_time < BOUNCE_TIME)
-                continue;
-
-            if (state == 0)
-            {
-                state = 1;
-                set_color(32,0,0);
-                last_button_down_time = button_time;
-            }
-            else
-            {
-                state = 0;
-                set_color(0,0,0);
-            }
             cli();
-            button_down_time = 0;
+            uint32_t ev_time = g_time;
             sei();
+
+            if (last_ev_time == 0 || ev_time - last_ev_time > BOUNCE_TIME)
+            {
+                if (motor_state == 0 && pin_state == 1)
+                {
+                    motor_state = 1;
+                    set_color(32,0,0);
+                }
+                else
+                if (motor_state == 1 and pin_state == 1)
+                {
+                    motor_state = 0;
+                    set_color(0,0,0);
+                }
+            }
+            last_ev_time = ev_time;
         } 
-#endif
+        last_pin_state = pin_state;
     }
 
     return 0;
