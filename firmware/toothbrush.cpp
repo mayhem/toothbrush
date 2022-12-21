@@ -16,11 +16,17 @@
 
 #define TIMER1_INIT      0xFFF8
 #define TIMER1_FLAGS     _BV(CS12)|(1<<CS10); // 8Mhz / 1024 / 8 = .001024 per tick
-#define BOUNCE_TIME 50
 
-volatile uint32_t event_time = 0;
-volatile uint8_t  event_state = 0;
-volatile uint32_t g_time = 0;
+const uint8_t       bounce_time = 50;     // in ms
+const uint32_t      brush_time = 3000; // 120000;  // in ms
+      uint32_t      brush_timeout = 0;
+      uint32_t      brush_timeout_1_off = 0;
+      uint32_t      brush_timeout_1_on = 0;
+
+volatile uint32_t   event_time = 0;
+volatile uint8_t    event_state = 0;
+volatile uint32_t   g_time = 0;
+
 
 ISR (TIMER1_OVF_vect)
 {
@@ -66,6 +72,13 @@ void delay(int16_t d)
 
 void enable_motor(uint8_t state)
 {
+    cli();
+    uint32_t current_time = g_time;
+    sei();
+    brush_timeout = current_time + brush_time;
+    brush_timeout_1_off = brush_timeout;
+    brush_timeout_1_on = brush_timeout + 50;
+
     if (state)
     {
         sbi(PORTB, PB1);
@@ -116,15 +129,15 @@ int main(void)
 
     for(;;)
     {
+        cli();
+        uint32_t ev_time = g_time;
+        sei();
+
         pin_state = PIND & (1<<PIND2) ? 0 : 1;
 
         if (pin_state != last_pin_state)
         {
-            cli();
-            uint32_t ev_time = g_time;
-            sei();
-
-            if (last_ev_time == 0 || ev_time - last_ev_time > BOUNCE_TIME)
+            if (last_ev_time == 0 || ev_time - last_ev_time > bounce_time)
             {
                 if (motor_state == 0 && pin_state == 1)
                 {
@@ -142,6 +155,17 @@ int main(void)
             last_ev_time = ev_time;
         } 
         last_pin_state = pin_state;
+
+        if (brush_timeout_1_off && ev_time >= brush_timeout_1_off)
+        {
+            brush_timeout_1_off = 0;
+            cbi(PORTB, PB1);
+        }
+        if (brush_timeout_1_on && ev_time >= brush_timeout_1_on)
+        {
+            brush_timeout_1_on = 0;
+            sbi(PORTB, PB1);
+        }
 
         if (sleepy_time)
         {
