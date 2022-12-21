@@ -102,15 +102,20 @@ int main(void)
     TCNT1 = TIMER1_INIT;
     TIMSK1 |= (1<<TOIE1);
 
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sei();
+
 
     uint8_t pin_state = 0, motor_state = 0;
     uint8_t last_pin_state = PIND & (1<<PIND2) ? 0 : 1;
     uint32_t last_ev_time = 0;
-    uint8_t sleepy_time;
+
+    _delay_ms(50);
+    // Go to sleep right away!
+    uint8_t sleepy_time = 1;
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+
     for(;;)
     {
-        sleepy_time = 0;
         pin_state = PIND & (1<<PIND2) ? 0 : 1;
 
         if (pin_state != last_pin_state)
@@ -152,12 +157,14 @@ int main(void)
             sleep_cpu();
             sleep_disable();
 
-            set_color(32, 0, 32);
+            set_color(0, 0, 32);
             _delay_ms(200);
             set_color(0, 0, 0);
 
             enable_motor(1);
             motor_state = 1;
+
+            sleepy_time = 0;
         }
     }
 
