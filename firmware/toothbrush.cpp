@@ -28,11 +28,9 @@ ISR (TIMER1_OVF_vect)
     TCNT1 = TIMER1_INIT;
 }
 
-//ISR(INT0_vect)
-//{
-//    event_state = PIND & (1<<PIND2);
-//    event_time = g_time;
-//}
+ISR(INT0_vect)
+{
+}
 
 void set_color(uint8_t red, uint8_t green, uint8_t blue) 
 {
@@ -69,9 +67,15 @@ void delay(int16_t d)
 void enable_motor(uint8_t state)
 {
     if (state)
+    {
         sbi(PORTB, PB1);
+        set_color(0, 32, 0);
+    }
     else
+    {
         cbi(PORTB, PB1);
+        set_color(0, 0, 0);
+    }
 }
 
 
@@ -90,8 +94,8 @@ int main(void)
     startup_animation();
 
     // enable INT0
-//    EICRA |= (1 << ISC00);
-//    EIMSK |= (1 << INT0);
+    EICRA |= (1 << ISC00);
+    EIMSK |= (1 << INT0);
 
     // enable timer for clock
     TCCR1B |= TIMER1_FLAGS;
@@ -103,9 +107,10 @@ int main(void)
     uint8_t pin_state = 0, motor_state = 0;
     uint8_t last_pin_state = PIND & (1<<PIND2) ? 0 : 1;
     uint32_t last_ev_time = 0;
-    uint8_t sleepy_time = 0;
+    uint8_t sleepy_time;
     for(;;)
     {
+        sleepy_time = 0;
         pin_state = PIND & (1<<PIND2) ? 0 : 1;
 
         if (pin_state != last_pin_state)
@@ -118,31 +123,42 @@ int main(void)
             {
                 if (motor_state == 0 && pin_state == 1)
                 {
+                    enable_motor(1);
                     motor_state = 1;
-                    set_color(32,0,0);
                 }
                 else
                 if (motor_state == 1 and pin_state == 1)
                 {
+                    enable_motor(0);
                     motor_state = 0;
-                    set_color(0,0,0);
                     sleepy_time = 1;
                 }
             }
             last_ev_time = ev_time;
         } 
         last_pin_state = pin_state;
-    }
 
-    if (sleepy_time)
-    {
-        set_color(0,0,32);
-        sleep_enable();
-        sleep_bod_disable();
-        sei();
-        sleep_cpu();
-        sleep_disable();
-        set_color(32,0,32);
+        if (sleepy_time)
+        {
+            // Let everything calm down before going to sleep
+            set_color(0, 0, 32);
+            _delay_ms(200);
+            set_color(0, 0, 0);
+
+            cli();
+            sleep_enable();
+            sleep_bod_disable();
+            sei();
+            sleep_cpu();
+            sleep_disable();
+
+            set_color(32, 0, 32);
+            _delay_ms(200);
+            set_color(0, 0, 0);
+
+            enable_motor(1);
+            motor_state = 1;
+        }
     }
 
     return 0;
